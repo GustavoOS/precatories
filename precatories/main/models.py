@@ -1,3 +1,4 @@
+from collections import defaultdict
 from django.contrib.auth.models import User
 from django.db import models
 
@@ -53,8 +54,13 @@ class Proposal(models.Model):
     arrenged_return_date = models.DateField(blank=True, null=True)
     prospected_return_date = models.DateField(blank=True, null=True)
 
+    class Meta:
+        indexes = [
+            models.Index(fields=["agent"])
+        ]
+
     def __str__(self) -> str:
-        return f"Proposal {self.id}"
+        return f"Proposal {self.id}, {self.agent.username}, {self.status}"
 
 
 class ContactType(models.Model):
@@ -67,8 +73,8 @@ class ContactType(models.Model):
 class ProposalContact(models.Model):
     proposal = models.ForeignKey(Proposal, on_delete=models.CASCADE)
     contact = models.CharField(max_length=50)
-    contact_type = models.ForeignKey(
-        ContactType, on_delete=models.CASCADE, null=True, blank=True)
+    contact_type = models.ForeignKey(ContactType, on_delete=models.CASCADE)
+
     def __str__(self) -> str:
         return f"{self.proposal} - {self.contact} - {self.contact_type}"
 
@@ -77,5 +83,34 @@ class AuthorProposal(models.Model):
     author = models.ForeignKey(ActionAuthor, on_delete=models.CASCADE)
     proposal = models.ForeignKey(
         Proposal, on_delete=models.CASCADE, null=True, blank=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["author"])
+        ]
+
     def __str__(self) -> str:
         return f"{self.author}; {self.proposal}"
+
+
+def setRoles():
+    roles = defaultdict(lambda: "unkown")
+    roles[0] = "legal"
+    roles[1] = "commercial"
+    return roles
+
+
+class UserRole(models.Model):
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, null=True, blank=True)
+    role = models.PositiveSmallIntegerField(null=False, blank=False, default=0)
+
+    roles = setRoles()
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["user"])
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.user.username} - {self.roles[self.role]}"
